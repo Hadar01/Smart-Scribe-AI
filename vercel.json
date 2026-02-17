@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "buildCommand": "cd smart-scribe-ai && npm install && npm run build",
+  "outputDirectory": "smart-scribe-ai/dist",
+  "framework": "vite",
+  "installCommand": "cd smart-scribe-ai && npm install",
+  "devCommand": "cd smart-scribe-ai && npm run dev",
+  "env": {
+    "GEMINI_API_KEY": "@gemini-api-key"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
