@@ -1,20 +1,56 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Smart Scribe AI
 
-This contains everything you need to run your app locally.
+> **Refine your writing instantly.** An intelligent AI-powered writing assistant that fixes grammar, adjusts tone, and polishes your English and Hinglish messages with ease.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1zkG-73MCsgIAvTQQeM-OKE49YWRbiyxo
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-smart--scribe--ai.vercel.app-blue)](https://smart-scribe-ai.vercel.app)
+[![License](https://img.shields.io/badge/License-MIT-green)](#license)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](#tech-stack)
 
-## Run Locally
+## 🎯 Overview
 
-**Prerequisites:**  Node.js
+Smart Scribe AI is an intelligent keyboard agent built with React and Gemini API that helps users improve their writing in real-time. It supports both English and **Hinglish** (Hindi + English mix) - a unique feature that sets it apart. The app provides multiple writing modes including grammar fixing, tone adjustment, and creative enhancements.
 
+**Key Highlights:**
+- 🌐 **Bilingual Support**: Native understanding of Hinglish without translation
+- 🎨 **8 Tone Modes**: Grammar, Professional, Casual, Social, Polite, Witty, Emojify
+- 🔐 **Flexible API Key Management**: Use your own Gemini API key or free tier
+- 🌓 **Dark Mode**: Full light/dark theme support
+- ⚡ **Real-time Processing**: Instant feedback with smooth animations
+- 📱 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## ✨ Features
+
+### Writing Enhancement Modes
+- **Fix Grammar**: Correct spelling and grammatical errors
+- **Professional Tone**: Transform text for formal communication
+- **Casual Tone**: Make writing more relaxed and conversational
+- **Social Tone**: Optimize for social media engagement
+- **Polite Tone**: Add courtesy and respect to your message
+- **Witty Tone**: Add humor and cleverness to your writing
+- **Emojify**: Enhance messages with appropriate emojis
+- **Original**: View side-by-side comparison
+
+### Smart Features
+- **Context Preservation**: Maintains meaning and intent of original text
+- **Language Detection**: Automatically handles English and Hinglish
+- **Live Preview**: Real-time suggestion generation
+- **Free Tier**: 3 free uses with system API key
+- **Custom API**: Unlimited uses with your own Gemini API key
+- **Auto-resize Textarea**: Adapts to content length
+- **Error Handling**: Safe content filtering and error messages
+- **Local Storage**: Saves API key and preferences
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** 18.x or higher
+- **npm** or **yarn** package manager
+- A **Google Gemini API key** (free at [aistudio.google.com](https://aistudio.google.com/app/apikey))
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Hadar01/Smart-Scribe-AI.git
+   cd Smart-Scribe-AI/smart-scribe-ai
