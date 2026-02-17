@@ -28,7 +28,9 @@
 /* Glass panel effect */
 @layer components {
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-xl border border-white/50;
+    @apply bg-white/70 border border-white/50;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .dark .glass-panel {
