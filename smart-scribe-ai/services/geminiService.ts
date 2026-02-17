@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { ToneType } from '../types';
 
-const MODEL_NAME = 'gemini-3-flash-preview';
+const MODEL_NAME = 'gemini-2.5-flash-lite';
 
 // Advanced System Instruction for Hinglish and Context preservation
 const SYSTEM_INSTRUCTION = `You are an advanced AI writing assistant designed for keyboard integration.
