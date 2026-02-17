@@ -193,14 +193,17 @@ const App: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="mb-8 text-center flex flex-col items-center">
+      <div className="mb-8 text-center flex flex-col items-center max-w-md mx-auto">
         <div className="w-16 h-16 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-200 dark:shadow-purple-900 mb-4 transform rotate-3 hover:rotate-6 transition-transform">
           <Sparkles className="text-white w-8 h-8" />
         </div>
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400">
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 mb-2">
           Smart Scribe AI
         </h1>
-        <div className="flex items-center gap-2 mt-2">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 leading-relaxed px-4">
+          Refine your writing instantly. Fix grammar, adjust tone, and polish your <span className="font-semibold text-indigo-600 dark:text-indigo-400">English</span> or <span className="font-semibold text-purple-600 dark:text-purple-400">Hinglish</span> messages with ease.
+        </p>
+        <div className="flex items-center gap-2">
            <span className="bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 px-2 py-0.5 rounded-full text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
              <Languages className="w-3 h-3" /> Hinglish Supported
            </span>
@@ -240,7 +243,7 @@ const App: React.FC = () => {
               ref={textareaRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Type in English or Hinglish (e.g., 'Mai aa raha hu')..."
+              placeholder="Type here (e.g., 'Mai aa raha hu' or 'I am coming')..."
               className="w-full bg-transparent border-none focus:ring-0 text-lg sm:text-xl text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 resize-none min-h-[120px] p-4 leading-relaxed"
               spellCheck={false}
             />
