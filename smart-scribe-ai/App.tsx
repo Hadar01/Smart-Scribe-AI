@@ -3,7 +3,9 @@ import { ToneSelector } from './components/ToneSelector';
 import { ResultCard } from './components/ResultCard';
 import { generateRewrite } from './services/geminiService';
 import { ToneType, AIRequestState } from './types';
-import { Sparkles, XCircle, Eraser, Keyboard, Languages, AlertCircle, Settings, Sun, Moon, KeyRound, Save } from 'lucide-react';
+import { Sparkles, XCircle, Eraser, Keyboard, Languages, AlertCircle, Settings, Sun, Moon, KeyRound, Save, Gift } from 'lucide-react';
+
+const MAX_FREE_USES = 3;
 
 const App: React.FC = () => {
   const [inputText, setInputText] = useState('');
@@ -11,17 +13,25 @@ const App: React.FC = () => {
   const [selectedTone, setSelectedTone] = useState<ToneType>(ToneType.GRAMMAR);
   const [aiState, setAiState] = useState<AIRequestState>({ status: 'idle' });
   
-  // Settings State
-  const [apiKey, setApiKey] = useState('');
+  // Settings & Usage State
+  const [userApiKey, setUserApiKey] = useState('');
+  const [freeUsageCount, setFreeUsageCount] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Initialize State from LocalStorage
   useEffect(() => {
+    // Load User API Key
     const storedKey = localStorage.getItem('gemini_api_key');
-    if (storedKey) setApiKey(storedKey);
+    if (storedKey) setUserApiKey(storedKey);
 
+    // Load Usage Count
+    const storedCount = localStorage.getItem('free_usage_count');
+    if (storedCount) setFreeUsageCount(parseInt(storedCount, 10));
+
+    // Load Theme
     const storedTheme = localStorage.getItem('theme');
     if (storedTheme === 'dark') {
       setDarkMode(true);
@@ -46,7 +56,7 @@ const App: React.FC = () => {
   };
 
   const handleSaveSettings = (key: string) => {
-    setApiKey(key);
+    setUserApiKey(key);
     localStorage.setItem('gemini_api_key', key);
     setIsSettingsOpen(false);
   };
@@ -72,10 +82,33 @@ const App: React.FC = () => {
   const handleGenerate = async (tone: ToneType) => {
     if (!inputText.trim()) return;
     
-    if (!apiKey) {
-      setAiState({ status: 'error', error: "Please set your API Key in settings first." });
-      setIsSettingsOpen(true);
-      return;
+    // LOGIC: Determine which key to use
+    let effectiveKey = userApiKey;
+    let isUsingFreeTier = false;
+
+    if (!effectiveKey) {
+      // If no user key, check free tier limits
+      if (freeUsageCount >= MAX_FREE_USES) {
+        setAiState({ 
+          status: 'error', 
+          error: "Free limit reached (3/3). Please add your own API Key in settings." 
+        });
+        setIsSettingsOpen(true);
+        return;
+      }
+      
+      // Use System Key
+      effectiveKey = process.env.API_KEY || "";
+      isUsingFreeTier = true;
+      
+      if (!effectiveKey) {
+         setAiState({ 
+          status: 'error', 
+          error: "System configuration error. Please add your own API Key in settings." 
+        });
+        setIsSettingsOpen(true);
+        return;
+      }
     }
 
     setSelectedTone(tone);
@@ -83,7 +116,15 @@ const App: React.FC = () => {
     setResultText('');
 
     try {
-      const rewritten = await generateRewrite(inputText, tone, apiKey);
+      const rewritten = await generateRewrite(inputText, tone, effectiveKey);
+      
+      // If successful and using free tier, increment counter
+      if (isUsingFreeTier) {
+        const newCount = freeUsageCount + 1;
+        setFreeUsageCount(newCount);
+        localStorage.setItem('free_usage_count', newCount.toString());
+      }
+
       setResultText(rewritten);
       setAiState({ status: 'success' });
     } catch (error) {
@@ -95,7 +136,6 @@ const App: React.FC = () => {
     setInputText(resultText);
     setResultText('');
     setAiState({ status: 'idle' });
-    // Reset height after applying
     if(textareaRef.current) {
        setTimeout(() => {
           textareaRef.current!.style.height = 'auto';
@@ -116,11 +156,19 @@ const App: React.FC = () => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
+  const remainingFree = Math.max(0, MAX_FREE_USES - freeUsageCount);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 flex flex-col items-center py-8 px-4 sm:px-6 relative overflow-hidden transition-colors duration-300">
       
       {/* Top Controls */}
       <div className="absolute top-4 right-4 flex gap-2 z-20">
+        {!userApiKey && (
+           <div className="hidden sm:flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-medium border border-indigo-200 dark:border-indigo-700 mr-2">
+             <Gift className="w-3.5 h-3.5 mr-1.5" />
+             {remainingFree} free uses left
+           </div>
+        )}
         <button 
           onClick={toggleDarkMode}
           className="p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700 transition-all shadow-sm backdrop-blur-sm"
@@ -190,11 +238,20 @@ const App: React.FC = () => {
 
             {/* AI Controls */}
             <div className="mt-2 bg-gray-50/80 dark:bg-gray-800/80 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 transition-colors">
-              <div className="flex items-center gap-2 mb-3 px-1">
-                 <div className="w-5 h-5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
-                    <Sparkles className="w-3 h-3 text-white" />
+              <div className="flex items-center justify-between mb-3 px-1">
+                 <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+                        <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">AI Actions</span>
                  </div>
-                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300">AI Actions</span>
+                 
+                 {/* Free Tier Indicator inside panel for mobile */}
+                 {!userApiKey && (
+                   <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800">
+                     {remainingFree} free uses
+                   </span>
+                 )}
               </div>
               
               <ToneSelector 
@@ -253,6 +310,35 @@ const App: React.FC = () => {
             </div>
             
             <div className="p-6 space-y-4">
+              
+              {/* Free Tier Status */}
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-semibold text-indigo-900 dark:text-indigo-200 text-sm">Free Tier</h4>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${userApiKey ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'}`}>
+                    {userApiKey ? 'Inactive' : 'Active'}
+                  </span>
+                </div>
+                {!userApiKey ? (
+                  <div>
+                    <div className="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2 mb-1">
+                      <div 
+                        className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+                        style={{ width: `${(freeUsageCount / MAX_FREE_USES) * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-indigo-700 dark:text-indigo-300 flex justify-between">
+                      <span>Used: {freeUsageCount}/{MAX_FREE_USES}</span>
+                      {freeUsageCount >= MAX_FREE_USES && <span className="text-red-500 font-bold">Limit Reached</span>}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400">
+                    You are using your own API Key. Enjoy unlimited access!
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <KeyRound className="w-4 h-4" /> Google Gemini API Key
@@ -260,21 +346,21 @@ const App: React.FC = () => {
                 <div className="relative">
                   <input 
                     type="password" 
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your API Key here..."
+                    value={userApiKey}
+                    onChange={(e) => setUserApiKey(e.target.value)}
+                    placeholder="Enter your API Key for unlimited use..."
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Your key is stored locally in your browser and used only for requests.
+                  Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">aistudio.google.com</a>
                 </p>
               </div>
             </div>
 
             <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
               <button 
-                onClick={() => handleSaveSettings(apiKey)}
+                onClick={() => handleSaveSettings(userApiKey)}
                 className="bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
               >
                 <Save className="w-4 h-4" /> Save Settings
