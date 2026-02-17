@@ -5,6 +5,9 @@ import { generateRewrite } from './services/geminiService';
 import { ToneType, AIRequestState } from './types';
 import { Sparkles, XCircle, Eraser, Keyboard, Languages, AlertCircle, Settings, Sun, Moon, KeyRound, Save, Gift } from 'lucide-react';
 
+// Avoid TypeScript errors with the injected process variable
+declare const process: any;
+
 const MAX_FREE_USES = 3;
 
 const App: React.FC = () => {
@@ -18,6 +21,11 @@ const App: React.FC = () => {
   const [freeUsageCount, setFreeUsageCount] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Check if System Key is injected via Vite Build
+  // If undefined or empty string, the developer hasn't set the env var.
+  const systemApiKey = process.env.API_KEY;
+  const isSystemKeyAvailable = !!systemApiKey && systemApiKey.length > 0;
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -91,24 +99,24 @@ const App: React.FC = () => {
       if (freeUsageCount >= MAX_FREE_USES) {
         setAiState({ 
           status: 'error', 
-          error: "Free limit reached (3/3). Please add your own API Key in settings." 
+          error: "Free limit reached. Please add your own API Key in settings." 
         });
         setIsSettingsOpen(true);
         return;
       }
       
       // Use System Key
-      effectiveKey = process.env.API_KEY || "";
-      isUsingFreeTier = true;
-      
-      if (!effectiveKey) {
+      if (!isSystemKeyAvailable) {
          setAiState({ 
           status: 'error', 
-          error: "System configuration error. Please add your own API Key in settings." 
+          error: "System configuration missing. Please add your own API Key." 
         });
         setIsSettingsOpen(true);
         return;
       }
+
+      effectiveKey = systemApiKey;
+      isUsingFreeTier = true;
     }
 
     setSelectedTone(tone);
@@ -163,7 +171,8 @@ const App: React.FC = () => {
       
       {/* Top Controls */}
       <div className="absolute top-4 right-4 flex gap-2 z-20">
-        {!userApiKey && (
+        {/* Only show Free Tier badge if user has no key AND system key is configured */}
+        {!userApiKey && isSystemKeyAvailable && (
            <div className="hidden sm:flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-medium border border-indigo-200 dark:border-indigo-700 mr-2">
              <Gift className="w-3.5 h-3.5 mr-1.5" />
              {remainingFree} free uses left
@@ -247,7 +256,7 @@ const App: React.FC = () => {
                  </div>
                  
                  {/* Free Tier Indicator inside panel for mobile */}
-                 {!userApiKey && (
+                 {!userApiKey && isSystemKeyAvailable && (
                    <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800">
                      {remainingFree} free uses
                    </span>
@@ -315,22 +324,36 @@ const App: React.FC = () => {
               <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-semibold text-indigo-900 dark:text-indigo-200 text-sm">Free Tier</h4>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${userApiKey ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'}`}>
-                    {userApiKey ? 'Inactive' : 'Active'}
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${userApiKey ? 'bg-gray-200 text-gray-500' : (isSystemKeyAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600')}`}>
+                    {userApiKey ? 'Inactive' : (isSystemKeyAvailable ? 'Active' : 'Unconfigured')}
                   </span>
                 </div>
                 {!userApiKey ? (
                   <div>
-                    <div className="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2 mb-1">
-                      <div 
-                        className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
-                        style={{ width: `${(freeUsageCount / MAX_FREE_USES) * 100}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-indigo-700 dark:text-indigo-300 flex justify-between">
-                      <span>Used: {freeUsageCount}/{MAX_FREE_USES}</span>
-                      {freeUsageCount >= MAX_FREE_USES && <span className="text-red-500 font-bold">Limit Reached</span>}
-                    </p>
+                    {isSystemKeyAvailable ? (
+                      <>
+                        <div className="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2 mb-1">
+                          <div 
+                            className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+                            style={{ width: `${(freeUsageCount / MAX_FREE_USES) * 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-indigo-700 dark:text-indigo-300 flex justify-between">
+                          <span>Used: {freeUsageCount}/{MAX_FREE_USES}</span>
+                          {freeUsageCount >= MAX_FREE_USES && <span className="text-red-500 font-bold">Limit Reached</span>}
+                        </p>
+                      </>
+                    ) : (
+                      <div className="p-3 bg-white dark:bg-black/20 rounded-lg border border-red-200 dark:border-red-900/50">
+                        <p className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">
+                           Developer Configuration Needed
+                        </p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                          The system API key is missing from the environment variables. 
+                          If you are the developer, add <code>API_KEY</code> to your deployment settings (e.g. Vercel Env Vars) or a local <code>.env</code> file.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-indigo-500 dark:text-indigo-400">
