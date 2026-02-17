@@ -1,8 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { ToneType } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 // Advanced System Instruction for Hinglish and Context preservation
@@ -24,21 +22,32 @@ CORE RULES (STRICTLY FOLLOW):
    - Apply the requested tone (Professional, Casual, etc.) to the *existing language*.
    - If input is Hinglish, the output should be Professional Hinglish (e.g., using "aap" instead of "tu", adding "ji", removing slang) rather than switching to English.
 
-5. **OUTPUT**: Return ONLY the transformed text string. No quotes, no markdown, no explanations.
+5. **SAFETY & CONFIDENCE CHECK (CRITICAL)**:
+   - If the input text contains explicit abuse, hate speech, threats, or is completely unintelligible gibberish: RETURN EXACTLY "[[ERROR: CANNOT_PROCESS]]".
+   - If the input is so ambiguous that you cannot determine the meaning without guessing significantly: RETURN EXACTLY "[[ERROR: CANNOT_PROCESS]]".
+   - Do NOT try to sanitize severe abuse by changing the meaning. Just reject it.
+
+6. **OUTPUT**: Return ONLY the transformed text string. No quotes, no markdown, no explanations.
 `;
 
 export const generateRewrite = async (
   text: string, 
-  tone: ToneType
+  tone: ToneType,
+  apiKey: string
 ): Promise<string> => {
   if (!text.trim()) return "";
+  if (!apiKey) {
+      throw new Error("API Key is missing. Please add it in settings.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
   let prompt = "";
 
   // Specific prompts tailored for Hinglish context retention
   switch (tone) {
     case ToneType.GRAMMAR:
-      prompt = `Correct the grammar and spelling. If the text is Hinglish, KEEP IT HINGLISH. Fix only mistakes. Preserve the original context: "${text}"`;
+      prompt = `Correct the grammar and spelling. If the text is Hinglish, KEEP IT HINGLISH. Fix only mistakes. Preserve the original context. If unclear/unsafe, return error code: "${text}"`;
       break;
     case ToneType.PROFESSIONAL:
       prompt = `Make this text sound professional and formal. If it is Hinglish, use respectful words (like 'Kripya', 'Ji', 'Aap'). Do not translate to English unless the original was English: "${text}"`;
@@ -68,13 +77,31 @@ export const generateRewrite = async (
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.6, // Lower temperature for more consistent grammar corrections
+        temperature: 0.6,
       }
     });
 
-    return response.text?.trim() || text;
-  } catch (error) {
+    const result = response.text?.trim();
+
+    // Check for our custom error signal or empty response (which might indicate safety block)
+    if (!result || result.includes('[[ERROR: CANNOT_PROCESS]]')) {
+      throw new Error("Unable to process. Content may be unclear, abusive, or ambiguous.");
+    }
+
+    return result;
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error("AI Agent is offline. Please check connection.");
+    
+    // Check if it's our custom error
+    if (error.message.includes("Unable to process")) {
+      throw error;
+    }
+    
+    // Pass through auth errors
+    if (error.toString().includes("403") || error.toString().includes("API key")) {
+         throw new Error("Invalid API Key. Please check your settings.");
+    }
+    
+    throw new Error("AI Agent is offline or rejected the request. Please try again.");
   }
 };
